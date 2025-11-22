@@ -252,15 +252,15 @@ function Cockpit({ onBack }) {
                 );
 
                 // Create glowing effect
-                gradient.addColorStop(0, 'rgba(0, 255, 0, 0)');
-                gradient.addColorStop(0.3, 'rgba(0, 255, 0, 0.8)');
-                gradient.addColorStop(0.7, 'rgba(0, 255, 0, 0.8)');
-                gradient.addColorStop(1, 'rgba(0, 255, 0, 0)');
+                gradient.addColorStop(0, 'rgba(255, 0, 0, 0)');
+                gradient.addColorStop(0.3, 'rgba(255, 0, 0, 0.8)');
+                gradient.addColorStop(0.7, 'rgba(255, 0, 0, 0.8)');
+                gradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
 
                 ctx.strokeStyle = gradient;
                 ctx.lineWidth = 3;
                 ctx.shadowBlur = 10;
-                ctx.shadowColor = '#0f0';
+                ctx.shadowColor = '#f00';
 
                 ctx.beginPath();
                 ctx.moveTo(laser.startX, laser.startY);

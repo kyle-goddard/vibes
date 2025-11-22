@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import './App.css'
 import StartScreen from './components/StartScreen'
 import Cockpit from './components/Cockpit'
@@ -10,6 +10,7 @@ function App() {
   const [view, setView] = useState('start'); // 'start' | 'game'
   const [audioEnabled, setAudioEnabled] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const audioRef = useRef(null);
 
   const handleStart = () => {
     setView('game');
@@ -20,15 +21,21 @@ function App() {
     setView('start');
   };
 
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.muted = isMuted;
+    }
+  }, [isMuted]);
+
   return (
     <>
       {audioEnabled && (
         <>
           <audio
+            ref={audioRef}
             src="/retro-tune.wav"
             autoPlay
             loop
-            muted={isMuted}
             style={{ display: 'none' }}
           />
           <AudioControl isMuted={isMuted} onToggle={() => setIsMuted(!isMuted)} />
