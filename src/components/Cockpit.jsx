@@ -8,6 +8,9 @@ function Cockpit({ onBack }) {
     const [isArrowKeyPressed, setIsArrowKeyPressed] = useState(false);
     const [lasers, setLasers] = useState([]);
     const [targets, setTargets] = useState([]);
+    const [score, setScore] = useState(0);
+    const [ammo, setAmmo] = useState(50);
+    const [gameOver, setGameOver] = useState(false);
     const canvasRef = useRef(null);
 
     // Refs for animation loop to access latest state without re-triggering effect
@@ -45,6 +48,13 @@ function Cockpit({ onBack }) {
         targetsRef.current = targets;
     }, [targets]);
 
+    // Check for game over when ammo runs out
+    useEffect(() => {
+        if (ammo === 0 && engineStarted && !gameOver) {
+            setGameOver(true);
+        }
+    }, [ammo, engineStarted, gameOver]);
+
     // Auto-centering effect - gradually move origin back to center
     useEffect(() => {
         if (!engineStarted || isPaused) return;
@@ -55,7 +65,7 @@ function Cockpit({ onBack }) {
             // Only apply auto-centering if no arrow keys are being pressed
             if (!isArrowKeyPressedRef.current) {
                 setOriginOffset(prev => {
-                    const dampingFactor = 0.95; // Controls how quickly it returns to center
+                    const dampingFactor = 0.98; // Controls how quickly it returns to center
                     const threshold = 0.1; // Stop when very close to center
 
                     const newX = Math.abs(prev.x) < threshold ? 0 : prev.x * dampingFactor;
@@ -83,36 +93,39 @@ function Cockpit({ onBack }) {
                     setIsPaused(false);
                 } else if (!engineStarted) {
                     setEngineStarted(true);
-                } else if (engineStarted && !isPaused) {
+                } else if (engineStarted && !isPaused && !gameOver) {
                     // Fire lasers during active flight
-                    const canvas = canvasRef.current;
-                    const targetX = canvas.width / 2 - originOffset.x;
-                    const targetY = canvas.height / 2 - originOffset.y;
+                    if (ammo > 0) {
+                        const canvas = canvasRef.current;
+                        const targetX = canvas.width / 2 - originOffset.x;
+                        const targetY = canvas.height / 2 - originOffset.y;
 
-                    const newLasers = [
-                        {
-                            id: Date.now() + Math.random(),
-                            startX: canvas.width / 2 - 30,
-                            startY: canvas.height,
-                            currentX: canvas.width / 2 - 30,
-                            currentY: canvas.height,
-                            targetX: targetX,
-                            targetY: targetY,
-                            progress: 0
-                        },
-                        {
-                            id: Date.now() + Math.random() + 1,
-                            startX: canvas.width / 2 + 30,
-                            startY: canvas.height,
-                            currentX: canvas.width / 2 + 30,
-                            currentY: canvas.height,
-                            targetX: targetX,
-                            targetY: targetY,
-                            progress: 0
-                        }
-                    ];
+                        const newLasers = [
+                            {
+                                id: Date.now() + Math.random(),
+                                startX: canvas.width / 2 - 30,
+                                startY: canvas.height,
+                                currentX: canvas.width / 2 - 30,
+                                currentY: canvas.height,
+                                targetX: targetX,
+                                targetY: targetY,
+                                progress: 0
+                            },
+                            {
+                                id: Date.now() + Math.random() + 1,
+                                startX: canvas.width / 2 + 30,
+                                startY: canvas.height,
+                                currentX: canvas.width / 2 + 30,
+                                currentY: canvas.height,
+                                targetX: targetX,
+                                targetY: targetY,
+                                progress: 0
+                            }
+                        ];
 
-                    setLasers(prev => [...prev, ...newLasers]);
+                        setLasers(prev => [...prev, ...newLasers]);
+                        setAmmo(prev => prev - 1);
+                    }
                 }
             } else if (event.code === 'Escape') {
                 if (isPaused) {
@@ -336,7 +349,7 @@ function Cockpit({ onBack }) {
                         y,
                         vx,
                         vy,
-                        size: targetType === 'rock' ? 20 + Math.random() * 30 : 25,
+                        size: targetType === 'rock' ? 20 + Math.random() * 30 : 15 + Math.random() * 20,
                         rotation: 0,
                         rotationSpeed: (Math.random() - 0.5) * 0.1,
                         waveOffset: Math.random() * Math.PI * 2,
@@ -383,11 +396,17 @@ function Cockpit({ onBack }) {
                         const dy = laser.currentY - target.y;
                         const distance = Math.sqrt(dx * dx + dy * dy);
 
-                        if (distance < target.size) {
+                        // Increased collision radius for easier gameplay
+                        const collisionRadius = target.size * 1.5;
+
+                        if (distance < collisionRadius) {
                             target.health--;
                             if (target.health <= 0) {
                                 target.hit = true;
                                 target.hitTime = currentTime;
+                                // Increase score based on target type
+                                const points = target.type === 'rock' ? 1 : 2;
+                                setScore(prev => prev + points);
                             }
                             lasersToRemoveFromCollision.push(laser.id);
                         }
@@ -552,10 +571,48 @@ function Cockpit({ onBack }) {
                         HIT ESC TO PAUSE
                     </div>
                 )}
-                {isPaused && (
+                {isPaused && !gameOver && (
                     <div className="instruction-overlay">
                         GAME PAUSED<br />
                         <span style={{ fontSize: '1rem' }}>PRESS SPACE TO RESUME / ESC TO ABORT</span>
+                    </div>
+                )}
+                {gameOver && (
+                    <div className="instruction-overlay" style={{
+                        background: 'rgba(0, 0, 0, 0.95)',
+                        border: '3px solid #f00',
+                        boxShadow: '0 0 20px #f00, inset 0 0 20px rgba(255, 0, 0, 0.3)'
+                    }}>
+                        <div style={{
+                            fontSize: '3rem',
+                            color: '#f00',
+                            marginBottom: '20px',
+                            textShadow: '0 0 10px #f00, 0 0 20px #f00'
+                        }}>
+                            GAME OVER
+                        </div>
+                        <div style={{
+                            fontSize: '2rem',
+                            color: '#0ff',
+                            marginBottom: '10px',
+                            textShadow: '0 0 10px #0ff'
+                        }}>
+                            FINAL SCORE: {score}
+                        </div>
+                        <div style={{
+                            fontSize: '1rem',
+                            color: '#fff',
+                            marginTop: '30px'
+                        }}>
+                            AMMO DEPLETED
+                        </div>
+                        <div style={{
+                            fontSize: '0.9rem',
+                            color: '#888',
+                            marginTop: '20px'
+                        }}>
+                            PRESS ESC TO RETURN
+                        </div>
                     </div>
                 )}
                 {engineStarted && (
@@ -570,12 +627,12 @@ function Cockpit({ onBack }) {
             </div>
             <div className="dashboard">
                 <div className="panel left-panel">
-                    <div className="screen">SYSTEM DIAGNOSTICS</div>
+                    <div className="screen">WEAPONS SYSTEM</div>
                     <div className="controls">
                         <div className="button-row">
-                            <button className="control-btn"></button>
-                            <button className="control-btn"></button>
-                            <button className="control-btn"></button>
+                            <div style={{ color: '#0f0', fontSize: '1.2rem', fontWeight: 'bold', textAlign: 'center', marginTop: '10px' }}>
+                                AMMO: {ammo}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -583,10 +640,10 @@ function Cockpit({ onBack }) {
                     <div className="radar"></div>
                 </div>
                 <div className="panel right-panel">
-                    <div className="screen">NAVIGATION</div>
+                    <div className="screen">MISSION STATUS</div>
                     <div className="data-readout">
+                        <span style={{ color: '#0ff', fontSize: '1.2rem', fontWeight: 'bold' }}>SCORE: {score}</span>
                         <span>VEL: {engineStarted ? '800.00' : '0.00'}</span>
-                        <span>POS: [0,0,0]</span>
                         <button className="nav-btn" onClick={onBack}>&lt; ABORT MISSION</button>
                     </div>
                 </div>
