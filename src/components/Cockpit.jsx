@@ -128,7 +128,7 @@ function Cockpit({ onBack }) {
                     }
                 }
             } else if (event.code === 'Escape') {
-                if (isPaused) {
+                if (isPaused || gameOver) {
                     onBack();
                 } else {
                     setIsPaused(true);
@@ -611,7 +611,7 @@ function Cockpit({ onBack }) {
                             color: '#888',
                             marginTop: '20px'
                         }}>
-                            PRESS ESC TO RETURN
+                            PRESS ESC TO START OVER
                         </div>
                     </div>
                 )}
